@@ -40,10 +40,24 @@ jobs:
           echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
           echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
 
+      - name: Ensure Windows SDK 10.0.22621 (UAP platform files)
+        shell: pwsh
+        run: |
+          $p = "C:\Program Files (x86)\Windows Kits\10\Platforms\UAP\10.0.22621.0\Platform.xml"
+          Write-Host "Installed UAP platforms:"
+          Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Platforms\UAP" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          if (-not (Test-Path $p)) {
+            Write-Host "Installing Windows SDK 22621 via chocolatey..."
+            choco install windows-sdk-11-version-22h2-all -y --no-progress
+            if (-not (Test-Path $p)) { throw "Platform.xml still missing at $p" }
+          }
+          Write-Host "OK: $p"
+
       - name: Restore
         shell: pwsh
         working-directory: windows
         run: dotnet restore WinUIGallery/WinUIGallery.csproj -r win-x64 -p:Platform=x64 -p:Configuration=Release-Unpackaged
+
 
       - name: Publish unpackaged Windows app
         shell: pwsh
