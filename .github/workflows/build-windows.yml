@@ -106,6 +106,6 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
             echo "Push rejected, rebasing and retrying ($i)..."
             git fetch origin main
-            git rebase origin/main || { git rebase --abort; exit 1; }
+            git -c rebase.autoStash=true rebase origin/main || { git rebase --abort; exit 1; }
           done
           exit 1
