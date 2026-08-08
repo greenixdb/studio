@@ -4,54 +4,94 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
-      
+          dotnet-version: '9.0.x'
+
       - name: Read version
+        shell: bash
         run: |
-          $content = Get-Content -Path version.properties -ErrorAction SilentlyContinue
-          if ($content) {
-            $name = ($content | Select-String 'VERSION_NAME=(.*)').Matches.Groups[1].Value
-            $code = ($content | Select-String 'VERSION_CODE=(.*)').Matches.Groups[1].Value
-            echo "VERSION_NAME=$name" >> $env:GITHUB_ENV
-            echo "VERSION_CODE=$code" >> $env:GITHUB_ENV
-          } else {
-            echo "VERSION_NAME=dev" >> $env:GITHUB_ENV
-            echo "VERSION_CODE=0" >> $env:GITHUB_ENV
-          }
-        shell: powershell
-      
-      - name: Build Windows App
+          if [ -f version.properties ]; then
+            set -a
+            . ./version.properties
+            set +a
+          fi
+          echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
+
+      - name: Restore
+        shell: pwsh
+        working-directory: windows
+        run: dotnet restore WinUIGallery/WinUIGallery.csproj -r win-x64 -p:Platform=x64 -p:Configuration=Release-Unpackaged
+
+      - name: Publish unpackaged Windows app
+        shell: pwsh
+        working-directory: windows
+        run: >
+          dotnet publish WinUIGallery/WinUIGallery.csproj
+          -c Release-Unpackaged
+          -r win-x64
+          -p:Platform=x64
+          -p:PublishSingleFile=true
+          -p:SelfContained=true
+          -p:Version=${{ env.VERSION_NAME }}
+          -p:FileVersion=${{ env.VERSION_NAME }}.${{ env.VERSION_CODE }}
+          --no-restore
+          -o publish-out
+
+      - name: Copy outputs
+        shell: pwsh
         run: |
-          mkdir -p build-output/windows/x64
-          cd windows-app
-          dotnet publish -c Release -r win-x64 --self-contained true \
-            -p:Version="$env:VERSION_NAME" \
-            -o "../build-output/windows/x64"
-      
-      - name: Rename outputs
-        run: |
-          cd build-output/windows/x64
-          Rename-Item -Path GreenixStudio.exe -NewName "greenix-studio-$env:VERSION_NAME-$env:VERSION_CODE.exe" -ErrorAction SilentlyContinue
-      
+          New-Item -ItemType Directory -Force -Path build-output/windows | Out-Null
+          $exe = Get-ChildItem -Path windows/publish-out -Filter *.exe -Recurse |
+                 Where-Object { $_.Name -notlike '*createdump*' } |
+                 Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw "No .exe produced" }
+          Copy-Item $exe.FullName "build-output/windows/greenix-studio-windows-v$env:VERSION_NAME-$env:VERSION_CODE.exe" -Force
+          Get-ChildItem build-output/windows
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: build-output/windows/
 
-          
+      - name: Commit build outputs back to repository
+        shell: bash
+        run: |
+          git config user.name "mood810"
+          git config user.email "mahmoodkaliika810@gmail.com"
+          git add -f build-output/windows
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "ci: add Windows build for v${VERSION_NAME} (${VERSION_CODE})"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "Push rejected, rebasing and retrying ($i)..."
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+          done
+          exit 1
