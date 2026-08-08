@@ -8,7 +8,8 @@ data class DatabaseEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val engine: String, // "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis"
+    val engine: String,
+    val category: String = "Relational", // "Relational", "No SQL", "Graph" // "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis"
     val type: String,   // "CREATED", "CONNECTED"
     val host: String = "localhost",
     val port: Int = 5432,

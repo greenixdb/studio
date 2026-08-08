@@ -11,13 +11,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class AppScreen {
     SPLASH,
     AUTH,
-    MAIN
+    MAIN,
+    CREATE_DATABASE,
+    CONNECT_DATABASE,
+    DATABASE_DASHBOARD
 }
 
 class GreenixViewModel(application: Application) : AndroidViewModel(application) {
@@ -54,12 +58,9 @@ class GreenixViewModel(application: Application) : AndroidViewModel(application)
     private val _userEmail = MutableStateFlow("admin@edgicode.com")
     val userEmail: StateFlow<String> = _userEmail.asStateFlow()
 
-    // Modal UI states
-    private val _showCreateModal = MutableStateFlow(false)
-    val showCreateModal: StateFlow<Boolean> = _showCreateModal.asStateFlow()
-
-    private val _showConnectModal = MutableStateFlow(false)
-    val showConnectModal: StateFlow<Boolean> = _showConnectModal.asStateFlow()
+    // Active database powering the dashboard screen
+    private val _activeDatabase = MutableStateFlow<DatabaseEntity?>(null)
+    val activeDatabase: StateFlow<DatabaseEntity?> = _activeDatabase.asStateFlow()
 
     private val _showNotificationsSheet = MutableStateFlow(false)
     val showNotificationsSheet: StateFlow<Boolean> = _showNotificationsSheet.asStateFlow()
@@ -92,20 +93,22 @@ class GreenixViewModel(application: Application) : AndroidViewModel(application)
         _isDarkTheme.value = isDark
     }
 
-    fun openCreateModal() {
-        _showCreateModal.value = true
+    fun openCreateDatabaseScreen() {
+        _currentScreen.value = AppScreen.CREATE_DATABASE
     }
 
-    fun closeCreateModal() {
-        _showCreateModal.value = false
+    fun openConnectDatabaseScreen() {
+        _currentScreen.value = AppScreen.CONNECT_DATABASE
     }
 
-    fun openConnectModal() {
-        _showConnectModal.value = true
+    fun openDatabaseDashboard(database: DatabaseEntity) {
+        _activeDatabase.value = database
+        _currentScreen.value = AppScreen.DATABASE_DASHBOARD
     }
 
-    fun closeConnectModal() {
-        _showConnectModal.value = false
+    fun backToMain() {
+        _activeDatabase.value = null
+        _currentScreen.value = AppScreen.MAIN
     }
 
     fun openNotificationsSheet() {
@@ -132,33 +135,99 @@ class GreenixViewModel(application: Application) : AndroidViewModel(application)
         _activeConsoleDatabase.value = null
     }
 
-    fun createDatabase(name: String, engine: String, dbName: String) {
+    fun createDatabase(category: String, engine: String, name: String) {
         viewModelScope.launch {
-            databaseRepository.createDatabase(
+            val id = databaseRepository.createDatabase(
                 name = name,
                 engine = engine,
-                dbName = dbName,
+                dbName = name.lowercase().replace(" ", "_"),
+                category = category,
+                port = defaultPortFor(engine),
                 username = _userName.value.lowercase().replace(" ", "_")
             )
+            openDatabaseById(id)
         }
     }
 
-    fun connectDatabase(name: String, engine: String, host: String, port: Int, dbName: String, username: String) {
+    fun connectDatabase(connectionString: String) {
         viewModelScope.launch {
-            databaseRepository.connectDatabase(
-                name = name,
-                engine = engine,
-                host = host,
-                port = port,
-                dbName = dbName,
-                username = username
+            val parsed = parseConnectionString(connectionString)
+            val id = databaseRepository.connectDatabase(
+                name = parsed.dbName.ifBlank { "Connected Database" },
+                engine = parsed.engine,
+                category = categoryFor(parsed.engine),
+                host = parsed.host,
+                port = parsed.port,
+                dbName = parsed.dbName,
+                username = parsed.username
             )
+            openDatabaseById(id)
+        }
+    }
+
+    private suspend fun openDatabaseById(id: Long) {
+        val database = databaseRepository.getDatabaseById(id).first()
+        if (database != null) {
+            openDatabaseDashboard(database)
+        } else {
+            backToMain()
         }
     }
 
     fun deleteDatabase(database: DatabaseEntity) {
         viewModelScope.launch {
             databaseRepository.deleteDatabase(database)
+            if (_activeDatabase.value?.id == database.id) {
+                backToMain()
+            }
         }
+    }
+
+    private data class ParsedConnection(
+        val engine: String,
+        val host: String,
+        val port: Int,
+        val dbName: String,
+        val username: String
+    )
+
+    private fun parseConnectionString(raw: String): ParsedConnection {
+        val value = raw.trim()
+        val scheme = value.substringBefore("://", "").lowercase()
+        val engine = when {
+            scheme.startsWith("postgres") -> "PostgreSQL"
+            scheme.startsWith("mysql") -> "MySQL"
+            scheme.startsWith("mongodb") -> "MongoDB"
+            scheme.startsWith("redis") -> "Redis"
+            scheme.startsWith("neo4j") || scheme.startsWith("bolt") -> "Neo4j"
+            scheme.startsWith("sqlite") || scheme.startsWith("file") -> "SQLite"
+            else -> "PostgreSQL"
+        }
+        val rest = value.substringAfter("://", value)
+        val credentials = if (rest.contains("@")) rest.substringBefore("@") else ""
+        val hostAndPath = if (rest.contains("@")) rest.substringAfter("@") else rest
+        val hostPort = hostAndPath.substringBefore("/")
+        val host = hostPort.substringBefore(":").ifBlank { "localhost" }
+        val port = hostPort.substringAfter(":", "").substringBefore("?")
+            .toIntOrNull() ?: defaultPortFor(engine)
+        val dbName = hostAndPath.substringAfter("/", "").substringBefore("?")
+        val username = credentials.substringBefore(":").ifBlank { "admin" }
+        return ParsedConnection(engine, host, port, dbName, username)
+    }
+
+    private fun defaultPortFor(engine: String): Int = when (engine) {
+        "PostgreSQL" -> 5432
+        "MySQL" -> 3306
+        "MongoDB" -> 27017
+        "Redis" -> 6379
+        "Neo4j" -> 7687
+        "ArangoDB" -> 8529
+        else -> 0
+    }
+
+    private fun categoryFor(engine: String): String = when (engine) {
+        "MongoDB", "Redis" -> "No SQL"
+        "Neo4j", "ArangoDB" -> "Graph"
+        else -> "Relational"
     }
 }

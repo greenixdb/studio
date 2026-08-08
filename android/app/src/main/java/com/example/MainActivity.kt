@@ -22,12 +22,13 @@ import com.example.ui.components.AppHeader
 import com.example.ui.components.AppNavigationDrawer
 import com.example.ui.components.AppTab
 import com.example.ui.components.BottomNavBar
-import com.example.ui.components.ConnectDatabaseModal
-import com.example.ui.components.CreateDatabaseModal
 import com.example.ui.components.DatabaseQueryConsoleModal
 import com.example.ui.components.NotificationsSheet
 import com.example.ui.components.ProfileDialog
 import com.example.ui.screens.AuthScreen
+import com.example.ui.screens.ConnectDatabaseScreen
+import com.example.ui.screens.CreateDatabaseScreen
+import com.example.ui.screens.DatabaseDashboardScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.MyDatabasesScreen
 import com.example.ui.screens.SplashScreen
@@ -58,8 +59,7 @@ fun GreenixStudioApp(
     val userEmail by viewModel.userEmail.collectAsStateWithLifecycle()
     val databases by viewModel.databases.collectAsStateWithLifecycle()
 
-    val showCreateModal by viewModel.showCreateModal.collectAsStateWithLifecycle()
-    val showConnectModal by viewModel.showConnectModal.collectAsStateWithLifecycle()
+    val activeDatabase by viewModel.activeDatabase.collectAsStateWithLifecycle()
     val showNotificationsSheet by viewModel.showNotificationsSheet.collectAsStateWithLifecycle()
     val showProfileDialog by viewModel.showProfileDialog.collectAsStateWithLifecycle()
     val activeConsoleDatabase by viewModel.activeConsoleDatabase.collectAsStateWithLifecycle()
@@ -84,6 +84,35 @@ fun GreenixStudioApp(
                     )
                 }
 
+                AppScreen.CREATE_DATABASE -> {
+                    CreateDatabaseScreen(
+                        onBack = { viewModel.backToMain() },
+                        onCreateDatabase = { category, engine, name ->
+                            viewModel.createDatabase(category, engine, name)
+                        }
+                    )
+                }
+
+                AppScreen.CONNECT_DATABASE -> {
+                    ConnectDatabaseScreen(
+                        onBack = { viewModel.backToMain() },
+                        onConnectDatabase = { connectionString ->
+                            viewModel.connectDatabase(connectionString)
+                        }
+                    )
+                }
+
+                AppScreen.DATABASE_DASHBOARD -> {
+                    activeDatabase?.let { db ->
+                        DatabaseDashboardScreen(
+                            database = db,
+                            onBack = { viewModel.backToMain() },
+                            onOpenQueryConsole = { viewModel.openQueryConsole(db) },
+                            onDeleteDatabase = { viewModel.deleteDatabase(db) }
+                        )
+                    }
+                }
+
                 AppScreen.MAIN -> {
                     AppNavigationDrawer(
                         drawerState = drawerState,
@@ -97,11 +126,11 @@ fun GreenixStudioApp(
                             coroutineScope.launch { drawerState.close() }
                         },
                         onCreateDbClick = {
-                            viewModel.openCreateModal()
+                            viewModel.openCreateDatabaseScreen()
                             coroutineScope.launch { drawerState.close() }
                         },
                         onConnectDbClick = {
-                            viewModel.openConnectModal()
+                            viewModel.openConnectDatabaseScreen()
                             coroutineScope.launch { drawerState.close() }
                         },
                         onAboutClick = {
@@ -145,9 +174,9 @@ fun GreenixStudioApp(
                                             HomeScreen(
                                                 userName = userName,
                                                 databases = databases,
-                                                onCreateDatabaseClick = { viewModel.openCreateModal() },
-                                                onConnectDatabaseClick = { viewModel.openConnectModal() },
-                                                onOpenQueryConsole = { db -> viewModel.openQueryConsole(db) },
+                                                onCreateDatabaseClick = { viewModel.openCreateDatabaseScreen() },
+                                                onConnectDatabaseClick = { viewModel.openConnectDatabaseScreen() },
+                                                onOpenQueryConsole = { db -> viewModel.openDatabaseDashboard(db) },
                                                 onViewAllDatabasesClick = { viewModel.selectTab(AppTab.MY_DATABASES) }
                                             )
                                         }
@@ -155,9 +184,9 @@ fun GreenixStudioApp(
                                         AppTab.MY_DATABASES -> {
                                             MyDatabasesScreen(
                                                 databases = databases,
-                                                onCreateDatabaseClick = { viewModel.openCreateModal() },
-                                                onConnectDatabaseClick = { viewModel.openConnectModal() },
-                                                onOpenQueryConsole = { db -> viewModel.openQueryConsole(db) },
+                                                onCreateDatabaseClick = { viewModel.openCreateDatabaseScreen() },
+                                                onConnectDatabaseClick = { viewModel.openConnectDatabaseScreen() },
+                                                onOpenQueryConsole = { db -> viewModel.openDatabaseDashboard(db) },
                                                 onDeleteDatabase = { db -> viewModel.deleteDatabase(db) }
                                             )
                                         }
@@ -170,25 +199,7 @@ fun GreenixStudioApp(
             }
         }
 
-        // Modals & Bottom Sheets
-        if (showCreateModal) {
-            CreateDatabaseModal(
-                onDismiss = { viewModel.closeCreateModal() },
-                onCreateDatabase = { name, engine, dbName ->
-                    viewModel.createDatabase(name, engine, dbName)
-                }
-            )
-        }
-
-        if (showConnectModal) {
-            ConnectDatabaseModal(
-                onDismiss = { viewModel.closeConnectModal() },
-                onConnectDatabase = { name, engine, host, port, dbName, username ->
-                    viewModel.connectDatabase(name, engine, host, port, dbName, username)
-                }
-            )
-        }
-
+        // Sheets & Dialogs
         if (showNotificationsSheet) {
             NotificationsSheet(
                 onDismiss = { viewModel.closeNotificationsSheet() }

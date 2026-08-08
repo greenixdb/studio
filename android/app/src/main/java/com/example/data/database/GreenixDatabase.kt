@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [DatabaseEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class GreenixDatabase : RoomDatabase() {
@@ -31,6 +31,7 @@ abstract class GreenixDatabase : RoomDatabase() {
                     GreenixDatabase::class.java,
                     "greenix_studio_db"
                 )
+                    .fallbackToDestructiveMigration(true)
                     .addCallback(GreenixDatabaseCallback(scope))
                     .build()
                 INSTANCE = instance
@@ -55,6 +56,7 @@ abstract class GreenixDatabase : RoomDatabase() {
                     DatabaseEntity(
                         name = "E-Commerce_Primary_DB",
                         engine = "PostgreSQL",
+                        category = "Relational",
                         type = "CREATED",
                         host = "pg.greenix.cloud",
                         port = 5432,
@@ -69,6 +71,7 @@ abstract class GreenixDatabase : RoomDatabase() {
                     DatabaseEntity(
                         name = "Analytics_Warehouse",
                         engine = "MySQL",
+                        category = "Relational",
                         type = "CONNECTED",
                         host = "mysql-cluster.edgicode.io",
                         port = 3306,
@@ -83,6 +86,7 @@ abstract class GreenixDatabase : RoomDatabase() {
                     DatabaseEntity(
                         name = "App_Local_Cache",
                         engine = "SQLite",
+                        category = "Relational",
                         type = "CREATED",
                         host = "local_storage",
                         port = 0,

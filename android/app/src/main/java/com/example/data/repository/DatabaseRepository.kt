@@ -17,6 +17,7 @@ class DatabaseRepository(private val databaseDao: DatabaseDao) {
         name: String,
         engine: String,
         dbName: String,
+        category: String = "Relational",
         host: String = "localhost",
         port: Int = 5432,
         username: String = "admin"
@@ -24,6 +25,7 @@ class DatabaseRepository(private val databaseDao: DatabaseDao) {
         val newDb = DatabaseEntity(
             name = name,
             engine = engine,
+            category = category,
             type = "CREATED",
             host = host,
             port = port,
@@ -41,6 +43,7 @@ class DatabaseRepository(private val databaseDao: DatabaseDao) {
     suspend fun connectDatabase(
         name: String,
         engine: String,
+        category: String = "Relational",
         host: String,
         port: Int,
         dbName: String,
@@ -49,6 +52,7 @@ class DatabaseRepository(private val databaseDao: DatabaseDao) {
         val connectedDb = DatabaseEntity(
             name = name,
             engine = engine,
+            category = category,
             type = "CONNECTED",
             host = host,
             port = port,
