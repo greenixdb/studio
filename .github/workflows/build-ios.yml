@@ -1,0 +1,57 @@
+name: Build iOS App
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Read version
+        run: |
+          if [ -f version.properties ]; then
+            source version.properties
+            echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+            echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          fi
+        shell: bash
+      
+      - name: Update Info.plist
+        run: |
+          cd ios-app
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ env.VERSION_NAME }}" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ env.VERSION_CODE }}" Info.plist
+      
+      - name: Build iOS App
+        run: |
+          cd ios-app
+          xcodebuild clean build -scheme GreenixStudio -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      
+      - name: Create IPA
+        run: |
+          cd ios-app
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphonesimulator/GreenixStudio.app Payload/
+          zip -r greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.ipa Payload
+          mkdir -p ../build-output/ios
+          cp greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.ipa \
+             ../build-output/ios/
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build-output/ios/
+
+          

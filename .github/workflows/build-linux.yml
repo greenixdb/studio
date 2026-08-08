@@ -1,0 +1,48 @@
+name: Build Linux App
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Read version
+        run: |
+          if [ -f version.properties ]; then
+            source version.properties
+            echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+            echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          fi
+        shell: bash
+      
+      - name: Build Linux App
+        run: |
+          mkdir -p build-output/linux/x64
+          cd linux-app
+          dotnet publish -c Release -r linux-x64 --self-contained true \
+            -p:Version="$VERSION_NAME" \
+            -o "../build-output/linux/x64"
+          mv ../build-output/linux/x64/GreenixStudio \
+             ../build-output/linux/x64/greenix-studio-$VERSION_NAME-$VERSION_CODE
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build-output/linux/
+          

@@ -1,0 +1,57 @@
+name: Build Windows App
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Read version
+        run: |
+          $content = Get-Content -Path version.properties -ErrorAction SilentlyContinue
+          if ($content) {
+            $name = ($content | Select-String 'VERSION_NAME=(.*)').Matches.Groups[1].Value
+            $code = ($content | Select-String 'VERSION_CODE=(.*)').Matches.Groups[1].Value
+            echo "VERSION_NAME=$name" >> $env:GITHUB_ENV
+            echo "VERSION_CODE=$code" >> $env:GITHUB_ENV
+          } else {
+            echo "VERSION_NAME=dev" >> $env:GITHUB_ENV
+            echo "VERSION_CODE=0" >> $env:GITHUB_ENV
+          }
+        shell: powershell
+      
+      - name: Build Windows App
+        run: |
+          mkdir -p build-output/windows/x64
+          cd windows-app
+          dotnet publish -c Release -r win-x64 --self-contained true \
+            -p:Version="$env:VERSION_NAME" \
+            -o "../build-output/windows/x64"
+      
+      - name: Rename outputs
+        run: |
+          cd build-output/windows/x64
+          Rename-Item -Path GreenixStudio.exe -NewName "greenix-studio-$env:VERSION_NAME-$env:VERSION_CODE.exe" -ErrorAction SilentlyContinue
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build-output/windows/
+
+          
