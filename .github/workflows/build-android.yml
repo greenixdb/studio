@@ -4,11 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -77,9 +72,9 @@ jobs:
         run: |
           mkdir -p build-output/android/apk build-output/android/aab
           cp android-app/app/build/outputs/apk/release/*.apk \
-             "build-output/android/apk/greenix-studio-v${VERSION_NAME}-${VERSION_CODE}.apk"
+             "build-output/android/apk/greenix-studio-android-v${VERSION_NAME}-${VERSION_CODE}.apk"
           cp android-app/app/build/outputs/bundle/release/*.aab \
-             "build-output/android/aab/greenix-studio-v${VERSION_NAME}-${VERSION_CODE}.aab"
+             "build-output/android/aab/greenix-studio-android-v${VERSION_NAME}-${VERSION_CODE}.aab"
           ls -lR build-output/android
 
       - name: Upload artifacts
