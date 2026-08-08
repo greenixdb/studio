@@ -1,0 +1,25 @@
+# Binaries and build artifacts
+appdir/*
+build/*
+bin/*
+contribs/*
+
+# QtQuick Compiler
+qrc_resources.cpp
+qmlcache_loader.cpp
+qml_*qml.cpp
+.qmlls.ini
+
+# CMake temporary project files
+CMakeLists.txt.user
+Makefile
+
+# XCode related
+Debug/*
+Release/*
+*.xcodeproj/*
+asset_catalog_compiler.Info.plist
+
+# Others
+stash/*
+.DS_Store

@@ -1,0 +1,124 @@
+
+#include "SettingsManager.h"
+
+#include <utils_app.h>
+#include <utils_screen.h>
+#include <utils_sysinfo.h>
+#include <utils_language.h>
+#include <utils_wifi.h>
+#include <utils_os_macos_dock.h>
+
+#include <QtGlobal>
+#include <QLibraryInfo>
+#include <QVersionNumber>
+
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickWindow>
+#include <QQuickStyle>
+#include <QSurfaceFormat>
+
+/* ************************************************************************** */
+
+int main(int argc, char *argv[])
+{
+    // Hacks ///////////////////////////////////////////////////////////////////
+
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+    // Qt 6.6+ mouse wheel hack
+    qputenv("QT_QUICK_FLICKABLE_WHEEL_DECELERATION", "10000");
+#endif
+
+    //qputenv("QT_QPA_PLATFORM", "xcb");      // Force xcb / wayland ?
+    //qputenv("QSG_RHI_BACKEND", "vulkan");   // Force opengl / vulkan ?
+
+    // DEBUG ///////////////////////////////////////////////////////////////////
+
+    //qputenv("QSG_INFO", "1");               // print Qt Scene Graph info
+    //qputenv("QT_QPA_EGLFS_DEBUG", "1");     // print Qt Platform Abstraction EGL debug info
+    //qputenv("QT_DEBUG_PLUGINS", "1");       // print Qt plugins info
+
+    // GUI application /////////////////////////////////////////////////////////
+
+    QGuiApplication app(argc, argv, true);
+
+    // Application name
+    app.setApplicationName("QmlAppTemplate");
+    app.setApplicationDisplayName("QmlAppTemplate");
+    app.setOrganizationName("emeric");
+    app.setOrganizationDomain("emeric");
+    app.setWindowIcon(QIcon(":/assets/gfx/logos/logo.svg"));
+
+    // Init app components
+    SettingsManager *sm = SettingsManager::getInstance();
+    if (!sm)
+    {
+        qWarning() << "Cannot init app components!";
+        return EXIT_FAILURE;
+    }
+
+    // Init generic utils
+    UtilsApp *utilsApp = UtilsApp::getInstance();
+    UtilsLanguage *utilsLanguage = UtilsLanguage::getInstance();
+    if (!utilsApp || !utilsLanguage)
+    {
+        qWarning() << "Cannot init generic utils!";
+        return EXIT_FAILURE;
+    }
+
+    // Translate the application
+    utilsLanguage->addTranslationCatalog("ComponentLibrary");
+    utilsLanguage->loadLanguage(sm->getAppLanguage());
+
+    // Force QtQuick components style? // Some styles are only available on target OS
+    // Basic // Fusion // Imagine // macOS // iOS // Material // Universal // Windows
+    //QQuickStyle::setStyle("Universal");
+
+    QQmlApplicationEngine engine;
+
+    //qDebug() << engine.importPathList();
+    //QDirIterator qrc(":", QDirIterator::Subdirectories);
+    //while(qrc.hasNext()) { qWarning() << qrc.next(); }
+
+    // Load the main view
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(FORCE_MOBILE_UI)
+    engine.loadFromModule("QmlAppTemplate", "MobileApplication");
+#else
+    engine.loadFromModule("QmlAppTemplate", "DesktopApplication");
+#endif
+
+    if (engine.rootObjects().isEmpty())
+    {
+        qWarning() << "Cannot init QmlApplicationEngine!";
+        return EXIT_FAILURE;
+    }
+
+    // For i18n retranslate
+    utilsLanguage->setQmlEngine(&engine);
+
+    // app info
+    utilsApp->setQuickWindow(qobject_cast<QQuickWindow *>(engine.rootObjects().value(0)));
+
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) // desktop section
+
+    // QQuickWindow must be valid at this point
+    QQuickWindow *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
+    if (!window) return EXIT_FAILURE;
+
+#if defined(Q_OS_MACOS)
+    // macOS dock
+    MacOSDockHandler *dockIconHandler = MacOSDockHandler::getInstance();
+    QObject::connect(dockIconHandler, &MacOSDockHandler::dockIconClicked, window, &QQuickWindow::show);
+    QObject::connect(dockIconHandler, &MacOSDockHandler::dockIconClicked, window, &QQuickWindow::raise);
+#endif
+
+#endif // desktop section
+
+#if defined(Q_OS_ANDROID)
+    QNativeInterface::QAndroidApplication::hideSplashScreen(333);
+#endif
+
+    return app.exec();
+}
+
+/* ************************************************************************** */

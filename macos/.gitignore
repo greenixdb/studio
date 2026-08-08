@@ -1,0 +1,9 @@
+.DS_Store
+/.build
+/Packages
+/*.xcodeproj
+xcuserdata/
+DerivedData/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+Demos/Simple Demo/Simple Demo.xcodeproj/project.xcworkspace/xcshareddata
+IDEWorkspaceChecks.plist
