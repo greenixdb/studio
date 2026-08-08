@@ -121,18 +121,7 @@ fun SplashScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // App Name Label Above
-                Text(
-                    text = "APP NAME",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = EmeraldPrimary,
-                    letterSpacing = 2.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // "Greenix Studio" below it
+                // "Greenix Studio"
                 Text(
                     text = "Greenix Studio",
                     style = MaterialTheme.typography.headlineLarge.copy(
@@ -140,13 +129,6 @@ fun SplashScreen(
                         fontSize = 32.sp
                     ),
                     color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Text(
-                    text = "Database Management Platform",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
