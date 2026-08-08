@@ -1,4 +1,0 @@
---- header
-A TimePicker with a header and minute increments specified.
---- xaml
-<TimePicker Header="Arrival time" MinuteIncrement="15" />

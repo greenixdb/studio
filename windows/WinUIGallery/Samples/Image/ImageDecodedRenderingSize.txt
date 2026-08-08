@@ -1,9 +1,0 @@
---- header
-An image decoded to the rendering size
---- xaml
-<Image Height="100">
-    <Image.Source>
-        <BitmapImage UriSource="/Assets/SampleMedia/treetops.jpg"
-            DecodePixelHeight="100" />
-    </Image.Source>
-</Image>

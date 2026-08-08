@@ -1,4 +1,0 @@
---- header
-A simple ToggleSwitch.
---- xaml
-<ToggleSwitch AutomationProperties.Name="simple ToggleSwitch"/>

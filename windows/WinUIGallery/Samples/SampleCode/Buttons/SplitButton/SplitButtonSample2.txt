@@ -1,8 +1,0 @@
-﻿<SplitButton x:Name="myColorButton">
-    Choose color
-    <SplitButton.Flyout>
-        <Flyout Placement="Bottom">
-            <!-- flyout content -->
-        </Flyout>
-    </SplitButton.Flyout>
-</SplitButton>

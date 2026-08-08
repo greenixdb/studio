@@ -1,4 +1,0 @@
---- header
-CalendarDatePicker with a header and placeholder text.
---- xaml
-<CalendarDatePicker PlaceholderText="Pick a date" Header="Calendar" />

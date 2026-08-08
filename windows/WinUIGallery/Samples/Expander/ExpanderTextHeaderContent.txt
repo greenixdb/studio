@@ -1,9 +1,0 @@
---- header
-An Expander with text in the header and content areas
---- xaml
-<Expander
-     IsExpanded="$(IsExpanded)"
-     ExpandDirection="$(ExpandDirection)"
-     VerticalAlignment="$(VerticalAlignment)"
-     Header="This text is in the header"
-     Content="This is in the content"/>

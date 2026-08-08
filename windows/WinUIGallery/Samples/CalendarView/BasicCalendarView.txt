@@ -1,9 +1,0 @@
---- header
-A basic calendar view.
---- xaml
-<CalendarView 
-    SelectionMode="$(SelectionMode)" 
-    IsGroupLabelVisible="$(IsGroupLabelVisible)"
-    IsOutOfScopeEnabled="$(IsOutOfScopeEnabled)"
-    Language="$(Language)"
-    CalendarIdentifier="$(CalendarIdentifier)" />

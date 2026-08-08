@@ -1,5 +1,0 @@
---- header
-Toggling Spatial Audio
---- c#
-ElementSoundPlayer.State = ElementSoundPlayerState.On;
-ElementSoundPlayer.SpatialAudioMode = ElementSpatialAudioMode.On

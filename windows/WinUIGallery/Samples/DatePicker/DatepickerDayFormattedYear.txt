@@ -1,4 +1,0 @@
---- header
-A DatePicker with day formatted and year hidden.
---- xaml
-<DatePicker DayFormat="{}{day.integer} ({dayofweek.abbreviated})" YearVisible="False" />

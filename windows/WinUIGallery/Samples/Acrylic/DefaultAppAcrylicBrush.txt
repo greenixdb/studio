@@ -1,4 +1,0 @@
---- header
-Default in-app acrylic brush.
---- xaml
-<Rectangle Fill="{ThemeResource AcrylicInAppFillColorDefaultBrush}" />

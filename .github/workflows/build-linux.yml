@@ -4,45 +4,46 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      
+
       - name: Read version
+        shell: bash
         run: |
           if [ -f version.properties ]; then
-            source version.properties
-            echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-            echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+            set -a
+            . ./version.properties
+            set +a
           fi
+          echo "VERSION_NAME=${LINUX_VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${LINUX_VERSION_CODE:-1}" >> $GITHUB_ENV
+
+      - name: Build Linux app
         shell: bash
-      
-      - name: Build Linux App
         run: |
           mkdir -p build-output/linux/x64
-          cd linux-app
-          dotnet publish -c Release -r linux-x64 --self-contained true \
+          dotnet publish linux/GreenixStudio.csproj -c Release -r linux-x64 \
+            --self-contained true \
             -p:Version="$VERSION_NAME" \
-            -o "../build-output/linux/x64"
-          mv ../build-output/linux/x64/GreenixStudio \
-             ../build-output/linux/x64/greenix-studio-$VERSION_NAME-$VERSION_CODE
-      
+            -o build-output/linux/x64
+          mv build-output/linux/x64/GreenixStudio \
+             "build-output/linux/x64/greenix-studio-linux-v$VERSION_NAME-$VERSION_CODE"
+          ls -l build-output/linux/x64
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
           path: build-output/linux/
-          

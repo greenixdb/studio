@@ -1,6 +1,0 @@
---- header
-Rich edit box in math mode
---- xaml
-<RichEditBox x:Name="mathEditor" FontSize="16" />
---- c#
-mathEditor.TextDocument.SetMathMode(RichEditMathMode.MathOnly);

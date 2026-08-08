@@ -1,4 +1,0 @@
---- header
-A hyperlink button that navigates to a URI.
---- xaml
-<HyperlinkButton Content="Microsoft home page" NavigateUri="https://www.microsoft.com" $(IsEnabled)/>

@@ -1,4 +1,0 @@
---- header
-Complete TabView windowing sample
---- xaml
-Check out the TabViewWindowingSamplePage.xaml and *.cs files to see the complete code.

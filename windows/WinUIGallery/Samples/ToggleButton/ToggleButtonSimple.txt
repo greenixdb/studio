@@ -1,4 +1,0 @@
---- header
-A simple ToggleButton with text content.
---- xaml
-<ToggleButton Content="ToggleButton" Click="Button_Click" $(IsEnabled)/>

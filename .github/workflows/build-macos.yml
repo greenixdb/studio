@@ -4,48 +4,41 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Read version
+        shell: bash
         run: |
           if [ -f version.properties ]; then
-            source version.properties
-            echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-            echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+            set -a
+            . ./version.properties
+            set +a
           fi
+          echo "VERSION_NAME=${MACOS_VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${MACOS_VERSION_CODE:-1}" >> $GITHUB_ENV
+
+      - name: Build macOS app
+        working-directory: macos
+        run: swift build -c release
+
+      - name: Copy outputs
         shell: bash
-      
-      - name: Build macOS App
-        run: |
-          cd macos-app
-          xcodebuild clean build -scheme GreenixStudio -configuration Release \
-            -derivedDataPath build
-      
-      - name: Create DMG
         run: |
           mkdir -p build-output/macos
-          cp -r macos-app/build/Build/Products/Release/GreenixStudio.app \
-                build-output/macos/greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.app
-          # Create DMG (requires create-dmg tool)
-          # brew install create-dmg
-          # create-dmg --overwrite \
-          #   build-output/macos/greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.dmg \
-          #   build-output/macos/greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.app
-      
+          cp macos/.build/release/GreenixStudio \
+             "build-output/macos/greenix-studio-macos-v$VERSION_NAME-$VERSION_CODE"
+          ls -l build-output/macos
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
           path: build-output/macos/
-
-          

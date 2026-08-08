@@ -1,4 +1,0 @@
---- header
-Ellipse
---- xaml
-<Ellipse Fill="SteelBlue" Height="$(Slider1)" Width="$(Slider2)" StrokeThickness="$(Slider3)" Stroke="Black"/>

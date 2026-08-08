@@ -6,13 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-concurrency:
-  group: build-ios
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: macos-latest
@@ -20,9 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
 
       - name: Read version
         shell: bash
@@ -32,29 +22,15 @@ jobs:
             . ./version.properties
             set +a
           fi
-          echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
-          echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
-
-      - name: Prepare third party keys
-        working-directory: ios
-        run: cp ThirdPartyKeys.example.plist ThirdPartyKeys.plist
-
-      - name: Install CocoaPods dependencies
-        working-directory: ios
-        run: pod install --repo-update
-
-      - name: Set version in Info.plist
-        working-directory: ios
-        run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION_NAME}" swift-ui-base/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION_CODE}" swift-ui-base/Info.plist
+          echo "VERSION_NAME=${IOS_VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${IOS_VERSION_CODE:-1}" >> $GITHUB_ENV
 
       - name: Build iOS app
         working-directory: ios
         run: |
           xcodebuild clean build \
-            -workspace swift-ui-base.xcworkspace \
-            -scheme swift-ui-base \
+            -project GreenixStudio.xcodeproj \
+            -scheme GreenixStudio \
             -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -79,23 +55,3 @@ jobs:
         with:
           name: ios-build
           path: build-output/ios/
-
-      - name: Commit build outputs back to repository
-        shell: bash
-        run: |
-          git config user.name "mood810"
-          git config user.email "mahmoodkaliika810@gmail.com"
-          git checkout -- ios/swift-ui-base/Info.plist || true
-          git add -f build-output/ios
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          git commit -m "ci: add iOS IPA for v${VERSION_NAME} (${VERSION_CODE})"
-          for i in 1 2 3 4 5; do
-            if git push origin HEAD:main; then exit 0; fi
-            echo "Push rejected, rebasing and retrying ($i)..."
-            git fetch origin main
-            git rebase origin/main || { git rebase --abort; exit 1; }
-          done
-          exit 1

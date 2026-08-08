@@ -1,9 +1,0 @@
---- header
-Custom acrylic in-app brush.
---- xaml
-<Rectangle Fill="{ThemeResource CustomAcrylicInAppBrush}" />
-
-<ResourceDictionary x:Key="Default">
-    <media:AcrylicBrush x:Key="CustomAcrylicBrush" 
-            TintOpacity="$(OpacitySlider)" TintColor="$(TintColor)" FallbackColor="$(FallbackColor)" />
-</ResourceDictionary>

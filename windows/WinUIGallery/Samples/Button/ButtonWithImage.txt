@@ -1,6 +1,0 @@
---- header
-A Button with graphical content.
---- xaml
-<Button Content="Button" Click="Button_Click" AutomationProperties.Name="Pie">
-    <Image Source="/Assets/SampleMedia/Slices.png" AutomationProperties.Name="Slice"/>
-</Button>

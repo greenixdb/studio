@@ -1,4 +1,0 @@
---- header
-Image stretching.
---- xaml
-<Image Stretch="$(Stretch)" Height="100" Width="100" Source="/Assets/SampleMedia/valley.jpg" />

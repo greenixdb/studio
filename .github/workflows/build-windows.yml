@@ -6,13 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-concurrency:
-  group: build-windows
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: windows-latest
@@ -20,9 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -37,52 +27,26 @@ jobs:
             . ./version.properties
             set +a
           fi
-          echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
-          echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
+          echo "VERSION_NAME=${WINDOWS_VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${WINDOWS_VERSION_CODE:-1}" >> $GITHUB_ENV
 
-      - name: Ensure Windows SDK 10.0.22621 (UAP platform files)
+      - name: Publish Windows app
         shell: pwsh
-        run: |
-          $p = "C:\Program Files (x86)\Windows Kits\10\Platforms\UAP\10.0.22621.0\Platform.xml"
-          Write-Host "Installed UAP platforms:"
-          Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Platforms\UAP" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
-          if (-not (Test-Path $p)) {
-            Write-Host "Installing Windows SDK 22621 via chocolatey..."
-            choco install windows-sdk-11-version-22h2-all -y --no-progress
-            if (-not (Test-Path $p)) { throw "Platform.xml still missing at $p" }
-          }
-          Write-Host "OK: $p"
-
-      - name: Restore
-        shell: pwsh
-        working-directory: windows
-        run: dotnet restore WinUIGallery/WinUIGallery.csproj -r win-x64 -p:Platform=x64 -p:Configuration=Release-Unpackaged
-
-
-      - name: Publish unpackaged Windows app
-        shell: pwsh
-        working-directory: windows
         run: >
-          dotnet publish WinUIGallery/WinUIGallery.csproj
-          -c Release-Unpackaged
+          dotnet publish windows/GreenixStudio.csproj
+          -c Release
           -r win-x64
-          -p:Platform=x64
           -p:PublishSingleFile=true
           -p:SelfContained=true
           -p:Version=${{ env.VERSION_NAME }}
           -p:FileVersion=${{ env.VERSION_NAME }}.${{ env.VERSION_CODE }}
-          --no-restore
           -o publish-out
 
       - name: Copy outputs
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path build-output/windows | Out-Null
-          $exe = Get-ChildItem -Path windows/publish-out -Filter *.exe -Recurse |
-                 Where-Object { $_.Name -notlike '*createdump*' } |
-                 Sort-Object Length -Descending | Select-Object -First 1
-          if (-not $exe) { throw "No .exe produced" }
-          Copy-Item $exe.FullName "build-output/windows/greenix-studio-windows-v$env:VERSION_NAME-$env:VERSION_CODE.exe" -Force
+          Copy-Item publish-out/GreenixStudio.exe "build-output/windows/greenix-studio-windows-v$env:VERSION_NAME-$env:VERSION_CODE.exe" -Force
           Get-ChildItem build-output/windows
 
       - name: Upload artifacts
@@ -90,22 +54,3 @@ jobs:
         with:
           name: windows-build
           path: build-output/windows/
-
-      - name: Commit build outputs back to repository
-        shell: bash
-        run: |
-          git config user.name "mood810"
-          git config user.email "mahmoodkaliika810@gmail.com"
-          git add -f build-output/windows
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          git commit -m "ci: add Windows build for v${VERSION_NAME} (${VERSION_CODE})"
-          for i in 1 2 3 4 5; do
-            if git push origin HEAD:main; then exit 0; fi
-            echo "Push rejected, rebasing and retrying ($i)..."
-            git fetch origin main
-            git -c rebase.autoStash=true rebase origin/main || { git rebase --abort; exit 1; }
-          done
-          exit 1

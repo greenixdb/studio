@@ -43,14 +43,14 @@ jobs:
             . ./version.properties
             set +a
           fi
-          echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
-          echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
+          echo "VERSION_NAME=${ANDROID_VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${ANDROID_VERSION_CODE:-1}" >> $GITHUB_ENV
 
       - name: Generate release keystore
         shell: bash
         run: |
           keytool -genkeypair -v \
-            -keystore android-app/my-upload-key.jks \
+            -keystore android/my-upload-key.jks \
             -alias upload \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" \
@@ -60,9 +60,9 @@ jobs:
           KEY_PASSWORD: greenix
 
       - name: Build Android APK & AAB
-        working-directory: android-app
+        working-directory: android
         env:
-          KEYSTORE_PATH: ${{ github.workspace }}/android-app/my-upload-key.jks
+          KEYSTORE_PATH: ${{ github.workspace }}/android/my-upload-key.jks
           STORE_PASSWORD: greenix
           KEY_PASSWORD: greenix
         run: gradle --no-daemon assembleRelease bundleRelease
@@ -71,9 +71,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p build-output/android/apk build-output/android/aab
-          cp android-app/app/build/outputs/apk/release/*.apk \
+          cp android/app/build/outputs/apk/release/*.apk \
              "build-output/android/apk/greenix-studio-android-v${VERSION_NAME}-${VERSION_CODE}.apk"
-          cp android-app/app/build/outputs/bundle/release/*.aab \
+          cp android/app/build/outputs/bundle/release/*.aab \
              "build-output/android/aab/greenix-studio-android-v${VERSION_NAME}-${VERSION_CODE}.aab"
           ls -lR build-output/android
 

@@ -1,4 +1,0 @@
---- header
-A TextBox with a header and placeholder text.
---- xaml
-<TextBox Header="Enter your name:" PlaceholderText="Name" />

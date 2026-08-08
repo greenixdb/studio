@@ -1,9 +1,0 @@
---- header
-A closable InfoBar with a long or short message and various buttons
---- xaml
-<InfoBar 
-    IsOpen="$(IsOpen)"
-    Title="Title"
-    Message="$(DisplayMessage)" >
-    $(DisplayButton)
-</InfoBar>

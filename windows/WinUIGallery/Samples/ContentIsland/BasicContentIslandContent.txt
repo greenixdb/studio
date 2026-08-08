@@ -1,2 +1,0 @@
---- header
-A basic content island with content.

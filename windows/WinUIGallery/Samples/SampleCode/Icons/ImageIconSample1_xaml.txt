@@ -1,3 +1,0 @@
-﻿<Button Name="ImageExample1" Width="100">
-    <ImageIcon Source="/Assets/SampleMedia/slices.png"/>
-</Button>

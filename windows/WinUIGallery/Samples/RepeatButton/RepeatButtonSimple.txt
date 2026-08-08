@@ -1,4 +1,0 @@
---- header
-A simple RepeatButton with text content.
---- xaml
-<RepeatButton Content="Click and hold" Click="RepeatButton_Click" $(IsEnabled)/>

@@ -1,8 +1,0 @@
---- header
-An AppBarToggleButton with a font icon.
---- xaml
-<AppBarToggleButton Label="FontIcon" Click="AppBarButton_Click">
-    <AppBarToggleButton.Icon>
-        <FontIcon FontFamily="Candara" Glyph="&#x03A3;"/>
-    </AppBarToggleButton.Icon>
-</AppBarToggleButton>
