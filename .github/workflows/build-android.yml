@@ -11,47 +11,88 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-      
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.1.0'
+
       - name: Read version
+        shell: bash
         run: |
           if [ -f version.properties ]; then
-            source version.properties
-            echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-            echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+            set -a
+            . ./version.properties
+            set +a
           fi
+          echo "VERSION_NAME=${VERSION_NAME:-0.1.0}" >> $GITHUB_ENV
+          echo "VERSION_CODE=${VERSION_CODE:-1}" >> $GITHUB_ENV
+
+      - name: Generate release keystore
         shell: bash
-      
+        run: |
+          keytool -genkeypair -v \
+            -keystore android-app/my-upload-key.jks \
+            -alias upload \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+            -dname "CN=Greenix Studio, OU=Edgicode, O=Edgicode Limited, L=Kampala, S=Kampala, C=UG"
+        env:
+          STORE_PASSWORD: greenix
+          KEY_PASSWORD: greenix
+
       - name: Build Android APK & AAB
-        run: |
-          cd android-app
-          chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease
-      
+        working-directory: android-app
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/android-app/my-upload-key.jks
+          STORE_PASSWORD: greenix
+          KEY_PASSWORD: greenix
+        run: gradle --no-daemon assembleRelease bundleRelease
+
       - name: Copy outputs
+        shell: bash
         run: |
-          mkdir -p build-output/android
+          mkdir -p build-output/android/apk build-output/android/aab
           cp android-app/app/build/outputs/apk/release/*.apk \
-             build-output/android/greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.apk || true
+             "build-output/android/apk/greenix-studio-v${VERSION_NAME}-${VERSION_CODE}.apk"
           cp android-app/app/build/outputs/bundle/release/*.aab \
-             build-output/android/greenix-studio-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}.aab || true
-      
+             "build-output/android/aab/greenix-studio-v${VERSION_NAME}-${VERSION_CODE}.aab"
+          ls -lR build-output/android
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-build
           path: build-output/android/
 
-          
+      - name: Commit build outputs back to repository
+        shell: bash
+        run: |
+          git config user.name "mood810"
+          git config user.email "mahmoodkaliika810@gmail.com"
+          git add -f build-output/android
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "ci: add Android APK & AAB for v${VERSION_NAME} (${VERSION_CODE})"
+          git push origin HEAD:main
